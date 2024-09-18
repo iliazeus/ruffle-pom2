@@ -132,6 +132,31 @@ pub trait TInteractiveObject<'gc>:
 
     /// Check if the interactive object accepts user input.
     fn mouse_enabled(self) -> bool {
+        // Hacks to make Punk-o-Matic 2 playable
+        {
+            use ruffle_wstr::WStr;
+            let self_triggers = [b"SheetP1", b"SheetP2"].map(WStr::from_units);
+            let child_triggers = [b"PracticeButton"].map(WStr::from_units);
+
+            fn matches(dobj: DisplayObject, triggers: &[&WStr]) -> bool {
+                dobj.name_optional()
+                    .is_some_and(|n| triggers.into_iter().any(|s| n == *s))
+            }
+
+            if matches(self.as_displayobject(), &self_triggers) {
+                return false;
+            }
+
+            if let Some(container) = self.as_displayobject().as_container() {
+                if container
+                    .iter_render_list()
+                    .any(|c| matches(c, &child_triggers))
+                {
+                    return false;
+                }
+            }
+        }
+
         self.raw_interactive()
             .flags
             .contains(InteractiveObjectFlags::MOUSE_ENABLED)
